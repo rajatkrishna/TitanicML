@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier as rf
+from sklearn.model_selection import GridSearchCV
 import re
 
 trainset = pd.read_csv("train.csv")
@@ -30,7 +31,7 @@ test['Embarked'][test['Embarked'].isnull()] = 0
 test_age_mean = test['Age'].mean()
 test_fare_mean = test['Fare'].mean()
 test['Age'][test['Age'].isnull()] = 0
-test['Fare'][test['Fare'].isnull()] = 0
+test['Fare'] = test.groupby('Pclass')['Fare'].transform(lambda x: x.fillna(x.median()))
 
 train_names = trainset['Name']
 test_names = testset['Name']
@@ -45,7 +46,21 @@ for t in set(train_titles).union(set(test_titles)):
 train_titles = np.array([title2idx[x] for x in train_titles])
 test_titles = np.array([title2idx[x] for x in test_titles])
 
+param_grid = {'n_estimators': [100, 300, 500],
+               'criterion': ['gini', 'entropy'],
+               'max_depth': [5, 7, 9]}
+
 model = rf()
+rf_cv = GridSearchCV(estimator = model, param_grid = param_grid)
+rf_cv.fit(feat, tar)
+
+best_params = rf_cv.best_params_
+
+model = rf(criterion = 'gini',
+           max_depth = 7,
+           n_estimators = 300)
+            
+
 model.fit(feat, tar)
 
 res = pd.DataFrame(columns = ('PassengerId', 'Survived'))
